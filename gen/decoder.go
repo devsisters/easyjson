@@ -179,9 +179,6 @@ func (g *Generator) genTypeDecoderNoCheck(t reflect.Type, out string, tags field
 
 	case reflect.Map:
 		key := t.Key()
-		if key.Kind() != reflect.String {
-			return fmt.Errorf("map type %v not supported: only string keys are allowed", key)
-		}
 		elem := t.Elem()
 		tmpVar := g.uniqueVarName()
 
@@ -192,7 +189,28 @@ func (g *Generator) genTypeDecoderNoCheck(t reflect.Type, out string, tags field
 		fmt.Fprintln(g.out, ws+"  "+out+" = make("+g.getType(t)+")")
 
 		fmt.Fprintln(g.out, ws+"  for !in.IsDelim('}') {")
-		fmt.Fprintln(g.out, ws+"    key := "+g.getType(t.Key())+"(in.String())")
+
+		switch key.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			g.imports["strconv"] = "strconv"
+			fmt.Fprintln(g.out, ws+"    keyV, err := strconv.ParseInt(in.String(), 10, 64)")
+			fmt.Fprintln(g.out, ws+"    if err != nil {")
+			fmt.Fprintln(g.out, ws+"      panic(err)")
+			fmt.Fprintln(g.out, ws+"    }")
+			fmt.Fprintln(g.out, ws+"    key := "+g.getType(t.Key())+"(keyV)")
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			g.imports["strconv"] = "strconv"
+			fmt.Fprintln(g.out, ws+"    keyV, err := strconv.ParseUint(in.String(), 10, 64)")
+			fmt.Fprintln(g.out, ws+"    if err != nil {")
+			fmt.Fprintln(g.out, ws+"      panic(err)")
+			fmt.Fprintln(g.out, ws+"    }")
+			fmt.Fprintln(g.out, ws+"    key := "+g.getType(t.Key())+"(keyV)")
+		case reflect.String:
+			fmt.Fprintln(g.out, ws+"    key := "+g.getType(t.Key())+"(in.String())")
+		default:
+			return fmt.Errorf("map type %v not supported: only string/integer keys are allowed", key)
+		}
+
 		fmt.Fprintln(g.out, ws+"    in.WantColon()")
 		fmt.Fprintln(g.out, ws+"    var "+tmpVar+" "+g.getType(elem))
 
