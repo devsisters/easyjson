@@ -186,9 +186,9 @@ func (g *Generator) genTypeEncoderNoCheck(t reflect.Type, in string, tags fieldT
 
 		switch key.Kind() {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			fmt.Fprintln(g.out, ws+"    out.String(strconv.FormatInt("+tmpVar+"Name, 10))")
+			fmt.Fprintln(g.out, ws+"    out.String(strconv.FormatInt(int64("+tmpVar+"Name), 10))")
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-			fmt.Fprintln(g.out, ws+"    out.String(strconv.FormatUint("+tmpVar+"Name, 10))")
+			fmt.Fprintln(g.out, ws+"    out.String(strconv.FormatUint(uint64("+tmpVar+"Name), 10))")
 		case reflect.String:
 			fmt.Fprintln(g.out, ws+"    out.String(string("+tmpVar+"Name))")
 		default:
