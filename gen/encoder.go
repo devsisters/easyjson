@@ -180,6 +180,9 @@ func (g *Generator) genTypeEncoderNoCheck(t reflect.Type, in string, tags fieldT
 
 	case reflect.Map:
 		key := t.Key()
+		if key.Kind() != reflect.String {
+			return fmt.Errorf("map type %v not supported: only string keys are allowed", key)
+		}
 		tmpVar := g.uniqueVarName()
 
 		fmt.Fprintln(g.out, ws+"if "+in+" == nil && (out.Flags & jwriter.NilMapAsEmpty) == 0 {")
@@ -190,18 +193,7 @@ func (g *Generator) genTypeEncoderNoCheck(t reflect.Type, in string, tags fieldT
 		fmt.Fprintln(g.out, ws+"  for "+tmpVar+"Name, "+tmpVar+"Value := range "+in+" {")
 		fmt.Fprintln(g.out, ws+"    if !"+tmpVar+"First { out.RawByte(',') }")
 		fmt.Fprintln(g.out, ws+"    "+tmpVar+"First = false")
-
-		switch key.Kind() {
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			fmt.Fprintln(g.out, ws+"    out.String(strconv.FormatInt(int64("+tmpVar+"Name), 10))")
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-			fmt.Fprintln(g.out, ws+"    out.String(strconv.FormatUint(uint64("+tmpVar+"Name), 10))")
-		case reflect.String:
-			fmt.Fprintln(g.out, ws+"    out.String(string("+tmpVar+"Name))")
-		default:
-			return fmt.Errorf("map type %v not supported: only string/integer keys are allowed", key)
-		}
-
+		fmt.Fprintln(g.out, ws+"    out.String(string("+tmpVar+"Name))")
 		fmt.Fprintln(g.out, ws+"    out.RawByte(':')")
 
 		g.genTypeEncoder(t.Elem(), tmpVar+"Value", tags, indent+2)
