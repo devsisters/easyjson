@@ -24,12 +24,32 @@ type visitor struct {
 	name string
 }
 
-func (p *Parser) needType(comments string) bool {
-	for _, v := range strings.Split(comments, "\n") {
-		if strings.HasPrefix(v, structComment) {
+func (p *Parser) needType(comments *ast.CommentGroup) bool {
+	if comments == nil {
+		return false
+	}
+
+	for _, v := range comments.List {
+		comment := v.Text
+
+		if len(comment) > 2 {
+			switch comment[1] {
+			case '/':
+				// -style comment (no newline at the end)
+				comment = comment[2:]
+			case '*':
+				/*-style comment */
+				comment = comment[2 : len(comment)-2]
+			}
+		}
+
+		comment = strings.TrimSpace(comment)
+
+		if strings.HasPrefix(comment, structComment) {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -42,7 +62,7 @@ func (v *visitor) Visit(n ast.Node) (w ast.Visitor) {
 		return v
 
 	case *ast.GenDecl:
-		explicit := v.needType(n.Doc.Text())
+		explicit := v.needType(n.Doc)
 		if !explicit {
 			return v
 		}
@@ -56,7 +76,7 @@ func (v *visitor) Visit(n ast.Node) (w ast.Visitor) {
 
 		return v
 	case *ast.TypeSpec:
-		explicit := v.needType(n.Doc.Text())
+		explicit := v.needType(n.Doc)
 		if !explicit && !v.AllStructs {
 			return nil
 		}
