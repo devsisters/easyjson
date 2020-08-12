@@ -43,10 +43,12 @@ func (p *Parser) needType(comments *ast.CommentGroup) bool {
 			}
 		}
 
-		comment = strings.TrimSpace(comment)
+		for _, comment := range strings.Split(comment, "\n") {
+			comment = strings.TrimSpace(comment)
 
-		if strings.HasPrefix(comment, structComment) {
-			return true
+			if strings.HasPrefix(comment, structComment) {
+				return true
+			}
 		}
 	}
 
